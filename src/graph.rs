@@ -321,8 +321,7 @@ pub fn montgomery_form(nodes: &mut [Node]) {
             Constant(c) => *node = MontConstant(Fr::new((*c).into())),
             MontConstant(..) => (),
             Input(..) => (),
-            Op(Add | Sub | Mul, ..) => (),
-            Op(..) => unimplemented!("Operators Montgomery form"),
+            Op(..) => (),
         }
     }
     eprintln!("Converted to Montgomery form");
