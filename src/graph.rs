@@ -1,14 +1,13 @@
+use crate::field::M;
+use ark_bn254::Fr;
+use ark_ff::{BigInt, PrimeField, Zero};
+use rand::Rng;
+use ruint::aliases::U256;
+use serde::{Deserialize, Serialize};
 use std::{
     collections::HashMap,
     ops::{BitAnd, Shl, Shr},
 };
-
-use crate::field::M;
-use ark_bn254::Fr;
-use ark_ff::PrimeField;
-use rand::Rng;
-use ruint::aliases::U256;
-use serde::{Deserialize, Serialize};
 
 use ark_serialize::{CanonicalDeserialize, CanonicalSerialize, Compress, Validate};
 
@@ -85,6 +84,16 @@ impl Operation {
             Add => a + b,
             Sub => a - b,
             Mul => a * b,
+            Eq => (a == b).into(),
+            Neq => (a != b).into(),
+            Lt => (a < b).into(),
+            Gt => (a > b).into(),
+            Leq => (a <= b).into(),
+            Geq => (a >= b).into(),
+            Lor => (a != Fr::zero() || b != Fr::zero()).into(),
+            Shl => compute_shl_Fr(a, b),
+            Shr => compute_shr_Fr(a, b),
+            Band => compute_bitand_Fr(a, b),
             _ => unimplemented!("operator {:?} not implemented for Montgomery", self),
         }
     }
@@ -100,6 +109,48 @@ fn compute_shr_uint(a: U256, b: U256) -> U256 {
     debug_assert!(b.lt(&U256::from(256)));
     let ls_limb = b.as_limbs()[0];
     a.shr(ls_limb as usize)
+}
+
+fn u8_to_u64_array(input: &[u8]) -> [u64; 4] {
+    // Check that the length of the input array is exactly 32 bytes
+    assert!(input.len() == 32, "Input length must be exactly 32 bytes");
+
+    // Create an array to hold the converted values
+    let mut output = [0u64; 4];
+
+    // Iterate over chunks of 8 bytes and convert them to u64
+    for (i, chunk) in input.chunks_exact(8).enumerate() {
+        let mut array = [0u8; 8];
+        array.copy_from_slice(chunk);
+        output[i] = u64::from_le_bytes(array);
+    }
+
+    output
+}
+
+pub fn compute_shl_Fr(a: Fr, b: Fr) -> Fr {
+    // convert Fr to U256
+    let a: U256 = a.into();
+    let b: U256 = b.into();
+    let result = compute_shl_uint(a, b);
+    let bytes: [u8; 64] = result.to_le_bytes();
+    Fr::from(BigInt::new(u8_to_u64_array(&bytes)))
+}
+
+pub fn compute_shr_Fr(a: Fr, b: Fr) -> Fr {
+    let a: U256 = a.into();
+    let b: U256 = b.into();
+    let result = compute_shr_uint(a, b);
+    let bytes: [u8; 64] = result.to_le_bytes();
+    Fr::from(BigInt::new(u8_to_u64_array(&bytes)))
+}
+
+pub fn compute_bitand_Fr(a: Fr, b: Fr) -> Fr {
+    let a: U256 = a.into();
+    let b: U256 = b.into();
+    let result = a.bitand(b);
+    let bytes: [u8; 64] = result.to_le_bytes();
+    Fr::from(BigInt::new(u8_to_u64_array(&bytes)))
 }
 
 /// All references must be backwards.
@@ -316,7 +367,6 @@ pub fn constants(nodes: &mut Vec<Node>) {
 pub fn montgomery_form(nodes: &mut [Node]) {
     for node in nodes.iter_mut() {
         use Node::*;
-        use Operation::*;
         match node {
             Constant(c) => *node = MontConstant(Fr::new((*c).into())),
             MontConstant(..) => (),
