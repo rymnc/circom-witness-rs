@@ -133,7 +133,7 @@ pub fn compute_shl_Fr(a: Fr, b: Fr) -> Fr {
     let a: U256 = a.into();
     let b: U256 = b.into();
     let result = compute_shl_uint(a, b);
-    let bytes: [u8; 64] = result.to_le_bytes();
+    let bytes: [u8; 32] = result.to_le_bytes();
     Fr::from(BigInt::new(u8_to_u64_array(&bytes)))
 }
 
@@ -141,7 +141,7 @@ pub fn compute_shr_Fr(a: Fr, b: Fr) -> Fr {
     let a: U256 = a.into();
     let b: U256 = b.into();
     let result = compute_shr_uint(a, b);
-    let bytes: [u8; 64] = result.to_le_bytes();
+    let bytes: [u8; 32] = result.to_le_bytes();
     Fr::from(BigInt::new(u8_to_u64_array(&bytes)))
 }
 
@@ -149,7 +149,7 @@ pub fn compute_bitand_Fr(a: Fr, b: Fr) -> Fr {
     let a: U256 = a.into();
     let b: U256 = b.into();
     let result = a.bitand(b);
-    let bytes: [u8; 64] = result.to_le_bytes();
+    let bytes: [u8; 32] = result.to_le_bytes();
     Fr::from(BigInt::new(u8_to_u64_array(&bytes)))
 }
 
